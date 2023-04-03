@@ -25,16 +25,13 @@ definition rem_est where
 "rem_est (c :: \<real>) l
   \<equiv> O(\<lambda> x. x * exp (-c * (ln x) ᣔ (1 / (1 + l))))"
 
-definition Li :: "\<real> \<Rightarrow> \<real>" where
-  "Li x \<equiv> \<integral> {2..x} (\<lambda>x. 1 / ln x)"
-definition PNT_1 :: "\<real> \<Rightarrow> bool" where
-  "PNT_1 l \<equiv> (\<exists>c. (\<lambda> x. \<pi> x - Li x) \<in> rem_est c l)"
-definition PNT_2 :: "\<real> \<Rightarrow> bool" where
-  "PNT_2 l \<equiv> (\<exists>c. (\<lambda> x. \<theta> x - x) \<in> rem_est c l)"
-definition PNT_3 :: "\<real> \<Rightarrow> bool" where
-  "PNT_3 l \<equiv> (\<exists>c. (\<lambda> x. \<psi> x - x) \<in> rem_est c l)"
+definition Li :: "\<real> \<Rightarrow> \<real>" where "Li x \<equiv> \<integral> {2..x} (\<lambda>x. 1 / ln x)"
+definition PNT_1 where "PNT_1 c l \<equiv> ((\<lambda>x. \<pi> x - Li x) \<in> rem_est c l)"
+definition PNT_2 where "PNT_2 c l \<equiv> ((\<lambda>x. \<theta> x - x) \<in> rem_est c l)"
+definition PNT_3 where "PNT_3 c l \<equiv> ((\<lambda>x. \<psi> x - x) \<in> rem_est c l)"
 
 hide_fact Equivalence_Measurable_On_Borel.integral_combine
+hide_fact Equivalence_Lebesgue_Henstock_Integration.integral_reflect_real
 
 lemma exp_bigo:
   fixes f g :: "\<real> \<Rightarrow> \<real>"
@@ -48,7 +45,7 @@ qed
 
 lemma rem_est_1:
   fixes c l :: \<real>
-  assumes h : "0 < l"
+  assumes h: "0 < l"
   shows "(\<lambda>x. x ᣔ (2 / 3)) \<in> O(\<lambda>x. x * exp (-c * (ln x) ᣔ (1 / (1 + l))))"
 proof -
   from h have "1 / (1 + l) < 1" by (simp add: field_simps)
@@ -63,11 +60,11 @@ qed
 
 lemma PNT_3_imp_PNT_2:
   fixes l :: \<real>
-  assumes h : "0 < l" and "PNT_3 l"
-  shows "PNT_2 l"
+  assumes h: "0 < l" and "PNT_3 c l"
+  shows "PNT_2 c l"
 proof -
-  from \<open>PNT_3 l\<close> obtain c where 1: "(\<lambda> x. \<psi> x - x) \<in> rem_est c l"
-    unfolding PNT_3_def by auto
+  have 1: "(\<lambda> x. \<psi> x - x) \<in> rem_est c l"
+    using assms(2) unfolding PNT_3_def by auto
   have "(\<lambda>x. \<psi> x - \<theta> x) \<in> O(\<lambda>x. ln x * sqrt x)" by (rule \<psi>_minus_\<theta>_bigo)
   also have "(\<lambda>x. ln x * sqrt x) \<in> O(\<lambda>x. x ᣔ (2 / 3))" by (real_asymp)
   also have "(\<lambda>x. x ᣔ (2 / 3)) \<in> O(\<lambda>x. x * exp (-c * (ln x) ᣔ (1 / (1 + l))))"
@@ -203,12 +200,12 @@ theorem integration_by_part':
   fixes a b :: \<real>
     and f g :: "\<real> \<Rightarrow> 'a :: {real_normed_field, banach}"
     and f' g' :: "\<real> \<Rightarrow> 'a"
-  assumes "a \<le> b" and
-    "continuous_on {a..b} f" and
-    "continuous_on {a..b} g" and
-    "\<And>x. x \<in> {a..b} \<Longrightarrow> (f has_vector_derivative f' x) (at x)" and
-    "\<And>x. x \<in> {a..b} \<Longrightarrow> (g has_vector_derivative g' x) (at x)" and
-    int: "(\<lambda>x. f x * g' x) \<llangle>\<integral>\<rrangle> {a..b}"
+  assumes "a \<le> b"
+    and "continuous_on {a..b} f"
+    and "continuous_on {a..b} g"
+    and "\<And>x. x \<in> {a..b} \<Longrightarrow> (f has_vector_derivative f' x) (at x)"
+    and "\<And>x. x \<in> {a..b} \<Longrightarrow> (g has_vector_derivative g' x) (at x)"
+    and int: "(\<lambda>x. f x * g' x) \<llangle>\<integral>\<rrangle> {a..b}"
   shows "((\<lambda>x. f' x * g x) has_integral
     f b * g b - f a * g a - \<integral>{a..b} (\<lambda>x. f x * g' x))
     {a..b}"
@@ -315,7 +312,7 @@ qed
 
 lemma eventually_at_top_linorderI':
   fixes c :: "'a :: {no_top, linorder}"
-  assumes h : "\<And>x. c < x \<Longrightarrow> P x"
+  assumes h: "\<And>x. c < x \<Longrightarrow> P x"
   shows "eventually P at_top"
 proof (rule eventually_mono)
   show "\<forall>\<^sub>F x in +\<infinity>. c < x" by (rule eventually_gt_at_top)
@@ -454,8 +451,8 @@ unfolding set_integrable_def
 
 lemma lm_a4:
   fixes c l :: \<real>
-  assumes hl : "0 < l"
-  assumes h: "r\<^sub>2 \<in> rem_est c l"
+  assumes hl: "0 < l"
+    and h: "r\<^sub>2 \<in> rem_est c l"
   shows "(\<lambda>x. \<integral> {2..x} (\<lambda>t. r\<^sub>2 t / (t * (ln t)\<^sup>2))) \<in> rem_est c l"
 unfolding rem_est_def
 proof (subst minus_mult_left [symmetric], rule integral_bigo_exp)
@@ -539,8 +536,8 @@ qed
 
 lemma lm_a5:
   fixes c l :: \<real>
-  assumes hl : "0 < l"
-  assumes h: "r\<^sub>2 \<in> rem_est c l"
+  assumes hl: "0 < l"
+    and h: "r\<^sub>2 \<in> rem_est c l"
   shows "(\<lambda>x. r\<^sub>2 x / (ln x) + 2 / ln 2) \<in> rem_est c l"
 proof -
   let ?O = "O(\<lambda>x. x * exp (- c * ln x ᣔ (1 / (1 + l))))"
@@ -568,10 +565,10 @@ qed
 
 lemma PNT_2_imp_PNT_1:
   fixes l :: \<real>
-  assumes h : "0 < l" and "PNT_2 l"
-  shows "PNT_1 l"
+  assumes h: "0 < l" and "PNT_2 c l"
+  shows "PNT_1 c l"
 proof -
-  from \<open>PNT_2 l\<close> obtain c where h': "r\<^sub>2 \<in> rem_est c l" unfolding PNT_2_def r\<^sub>2_def by auto
+  from assms(2) have h': "r\<^sub>2 \<in> rem_est c l" unfolding PNT_2_def r\<^sub>2_def by auto
   let ?a = "\<lambda>x. r\<^sub>2 x / ln x + 2 / ln 2"
   let ?b = "\<lambda>x. \<integral> {2..x} (\<lambda>t. r\<^sub>2 t / (t * (ln t)\<^sup>2))"
   have 1: "\<forall>\<^sub>F x in +\<infinity>. \<pi> x - Li x = ?a x + ?b x"
@@ -586,9 +583,9 @@ qed
 
 lemma PNT_3_imp_PNT_1:
   fixes l :: \<real>
-  assumes h : "0 < l" and "PNT_3 l"
-  shows "PNT_1 l"
-  using assms by (intro PNT_2_imp_PNT_1 PNT_3_imp_PNT_2)
+  assumes h : "0 < l" and "PNT_3 c l"
+  shows "PNT_1 c l"
+  by (intro PNT_2_imp_PNT_1 PNT_3_imp_PNT_2 assms)
 
 unbundle no_prime_counting_notation
 
@@ -633,42 +630,53 @@ notation has_derivative (infix "#d" 50)
 notation has_field_derivative (infix "#fd" 50)
 notation log_differentiable (infix "#l\<Zprime>" 50)
 
+lemma multiplicative_fds_zeta:
+  "completely_multiplicative_function (d\<^sub>n \<zeta>\<^sub>d :: _ \<Rightarrow> \<complex>)"
+  by standard auto
+
+lemma fds_mangoldt_eq:
+  "fds \<Lambda> = -(d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d)"
+proof -
+  have "d\<^sub>n \<zeta>\<^sub>d 1 \<noteq> 0" by auto
+  hence "d\<^sub>n (d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d) n = -d\<^sub>n \<zeta>\<^sub>d n * \<Lambda> n" for n
+    using multiplicative_fds_zeta
+    by (intro fds_nth_logderiv_completely_multiplicative)
+  thus ?thesis by (intro fds_eqI, auto)
+qed
+
+lemma abs_conv_abscissa_log_deriv:
+  "abs_conv_abscissa (d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d) \<le> 1"
+  by (rule abs_conv_abscissa_completely_multiplicative_log_deriv
+      [OF multiplicative_fds_zeta, unfolded abs_conv_abscissa_zeta], auto)
+
+lemma abs_conv_abscissa_mangoldt:
+  "abs_conv_abscissa (fds \<Lambda>) \<le> 1"
+  using abs_conv_abscissa_log_deriv
+  by (subst fds_mangoldt_eq, subst abs_conv_abscissa_minus)
+
 lemma
   assumes s: "Re s > 1"
-  shows eval_fds_mongoldt:
-    "eval_fds (fds \<Lambda>) s = - \<zeta>\<Zprime> s / \<zeta> s"
-  and abs_conv_abscissa_mongoldt:
-    "abs_conv_abscissa (fds \<Lambda>) \<le> 1"
-  and abs_conv_mangoldt:
-    "fds_abs_converges (fds \<Lambda>) s"
+  shows eval_fds_mangoldt: "eval_fds (fds \<Lambda>) s = - \<zeta>\<Zprime> s / \<zeta> s"
+    and abs_conv_mangoldt: "fds_abs_converges (fds \<Lambda>) s"
 proof -
-  have 1: "completely_multiplicative_function (d\<^sub>n \<zeta>\<^sub>d :: _ \<Rightarrow> \<complex>)" by standard auto
-  moreover have "d\<^sub>n \<zeta>\<^sub>d 1 \<noteq> 0" by auto
-  ultimately have "d\<^sub>n (d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d) n = -d\<^sub>n \<zeta>\<^sub>d n * \<Lambda> n" for n
-    by (rule fds_nth_logderiv_completely_multiplicative)
-  hence 2: "fds \<Lambda> = -(d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d)"
-    by (intro fds_eqI, auto)
-  have 3: "abs_conv_abscissa (d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d) \<le> 1"
-    by (rule abs_conv_abscissa_completely_multiplicative_log_deriv
-      [OF 1, unfolded abs_conv_abscissa_zeta], auto)
-  hence 4: "abs_conv_abscissa (d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d) < ereal (s \<bullet> 1)"
+  from abs_conv_abscissa_log_deriv
+  have 1: "abs_conv_abscissa (d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d) < ereal (s \<bullet> 1)"
     using s by (intro le_ereal_less, auto, unfold one_ereal_def, auto)
-  have 5: "abs_conv_abscissa \<zeta>\<^sub>d < ereal (s \<bullet> 1)"
+  have 2: "abs_conv_abscissa \<zeta>\<^sub>d < ereal (s \<bullet> 1)"
     using s by (subst abs_conv_abscissa_zeta, auto)
-  hence 6: "fds_abs_converges (d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d) s"
-    by (intro fds_abs_converges) (rule 4)
-  from 2 have "eval_fds (fds \<Lambda>) s = eval_fds (-(d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d)) s" by auto
+  hence 3: "fds_abs_converges (d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d) s"
+    by (intro fds_abs_converges) (rule 1)
+  have "eval_fds (fds \<Lambda>) s = eval_fds (-(d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d)) s"
+    using fds_mangoldt_eq by auto
   also have "\<dots> = -eval_fds (d\<Zprime> \<zeta>\<^sub>d / \<zeta>\<^sub>d) s"
-    by (intro eval_fds_uminus fds_abs_converges_imp_converges 6)
+    by (intro eval_fds_uminus fds_abs_converges_imp_converges 3)
   also have "\<dots> = -(eval_fds (d\<Zprime> \<zeta>\<^sub>d) s / eval_fds \<zeta>\<^sub>d s)"
-    using s by (subst eval_fds_log_deriv; ((intro 4 5)?, (auto intro!: eval_fds_zeta_nonzero)?))
+    using s by (subst eval_fds_log_deriv; ((intro 1 2)?, (auto intro!: eval_fds_zeta_nonzero)?))
   also have "\<dots> = - \<zeta>\<Zprime> s / \<zeta> s"
     using s by (subst eval_fds_zeta, blast, subst eval_fds_deriv_zeta, auto)
   finally show "eval_fds (fds \<Lambda>) s = - \<zeta>\<Zprime> s / \<zeta> s" .
-  show "abs_conv_abscissa (fds \<Lambda>) \<le> 1"
-    by (subst 2, subst abs_conv_abscissa_minus, rule 3)
   show "fds_abs_converges (fds \<Lambda>) s"
-    by (subst 2, intro fds_abs_converges_uminus 6)
+    by (subst fds_mangoldt_eq) (intro fds_abs_converges_uminus 3)
 qed
 
 lemma has_sum_summable [intro]:
@@ -688,7 +696,7 @@ proof -
   hence "summable (\<lambda>n. ║d\<^sub>n (fds \<Lambda>) n / nat_power n s║)"
     by (fold fds_abs_converges_def, intro 1)
   moreover have "(\<lambda>n. d\<^sub>n (fds \<Lambda>) n / nat_power n s) sums (- \<zeta>\<Zprime> s / \<zeta> s)"
-    by (subst eval_fds_mongoldt(1) [symmetric], intro s, fold fds_converges_iff, intro 2)
+    by (subst eval_fds_mangoldt(1) [symmetric], intro s, fold fds_converges_iff, intro 2)
   ultimately have "has_sum (\<lambda>n. d\<^sub>n (fds \<Lambda>) n / n \<nat>ᣔ s) UNIV (- \<zeta>\<Zprime> s / \<zeta> s)"
     by (fold nat_power_complex_def, rule norm_summable_imp_has_sum)
   moreover have [simp]: "(if n = 0 then 0 else \<Lambda> n) = \<Lambda> n" for n by auto
@@ -797,12 +805,12 @@ lemma not_zero_on_obtain:
 using assms unfolding not_zero_on_def by auto
 
 theorem analytic_on_holomorphic_connected:
-assumes hf: "f analytic_on S"
+  assumes hf: "f analytic_on S"
     and con: "connected A"
     and ne: "\<xi> \<in> A" and AS: "A \<subseteq> S"
-obtains T T' where
-  "f holomorphic_on T" "f holomorphic_on T'"
-  "open T" "open T'" "A \<subseteq> T" "S \<subseteq> T'" "connected T"
+  obtains T T' where
+    "f holomorphic_on T" "f holomorphic_on T'"
+    "open T" "open T'" "A \<subseteq> T" "S \<subseteq> T'" "connected T"
 proof -
   obtain T'
   where oT': "open T'" and sT': "S \<subseteq> T'"
@@ -819,15 +827,15 @@ proof -
 qed
 
 theorem analytic_factor_zero:
-assumes hf: "f analytic_on S"
+  assumes hf: "f analytic_on S"
     and KS: "K \<subseteq> S" and con: "connected K"
     and \<xi>K: "\<xi> \<in> K" and \<xi>z: "f \<xi> = 0"
     and nz: "f not_zero_on K"
-obtains g r n
-  where "0 < n" "0 < r"
-        "g analytic_on S" "g not_zero_on K"
-        "\<And>z. z \<in> S \<Longrightarrow> f z = (z - \<xi>)^n * g z"
-        "\<And>z. z \<in> ball \<xi> r \<Longrightarrow> g z \<noteq> 0"
+  obtains g r n
+    where "0 < n" "0 < r"
+          "g analytic_on S" "g not_zero_on K"
+          "\<And>z. z \<in> S \<Longrightarrow> f z = (z - \<xi>)^n * g z"
+          "\<And>z. z \<in> ball \<xi> r \<Longrightarrow> g z \<noteq> 0"
 proof -
   have "f analytic_on S" "connected K"
        "\<xi> \<in> K" "K \<subseteq> S" using assms by auto
@@ -881,7 +889,7 @@ proof -
 qed
 
 theorem analytic_compact_finite_zeros:
-assumes af: "f analytic_on S"
+  assumes af: "f analytic_on S"
     and KS: "K \<subseteq> S"
     and con: "connected K"
     and cm: "compact K"
@@ -903,23 +911,23 @@ next
   thus ?thesis using holf opT conT cm ST by (intro holomorphic_compact_finite_zeros)
 qed
 
-definition analytic_factor_p' where \<open>
-analytic_factor_p' f S K \<equiv>
-\<exists>g n. \<exists>\<alpha> :: \<nat> \<Rightarrow> \<complex>.
-      g analytic_on S
-    \<and> (\<forall>z \<in> K. g z \<noteq> 0)
-    \<and> (\<forall>z \<in> S. f z = g z * (\<Prod>k<n. z - \<alpha> k))
-    \<and> \<alpha> ` {..<n} \<subseteq> K\<close>
+definition analytic_factor_p' where
+ \<open>analytic_factor_p' f S K \<equiv>
+  \<exists>g n. \<exists>\<alpha> :: \<nat> \<Rightarrow> \<complex>.
+        g analytic_on S
+      \<and> (\<forall>z \<in> K. g z \<noteq> 0)
+      \<and> (\<forall>z \<in> S. f z = g z * (\<Prod>k<n. z - \<alpha> k))
+      \<and> \<alpha> ` {..<n} \<subseteq> K\<close>
 
-definition analytic_factor_p where \<open>
-analytic_factor_p F \<equiv>
-\<forall>f S K. f analytic_on S
-  \<longrightarrow> K \<subseteq> S
-  \<longrightarrow> connected K
-  \<longrightarrow> compact K
-  \<longrightarrow> f not_zero_on K
-  \<longrightarrow> {z \<in> K. f z = 0} = F
-  \<longrightarrow> analytic_factor_p' f S K\<close>
+definition analytic_factor_p where
+ \<open>analytic_factor_p F \<equiv>
+  \<forall>f S K. f analytic_on S
+    \<longrightarrow> K \<subseteq> S
+    \<longrightarrow> connected K
+    \<longrightarrow> compact K
+    \<longrightarrow> f not_zero_on K
+    \<longrightarrow> {z \<in> K. f z = 0} = F
+    \<longrightarrow> analytic_factor_p' f S K\<close>
 
 
 theorem analytic_factorization_E:
@@ -943,18 +951,18 @@ proof (intro conjI allI impI)
 qed
 
 theorem analytic_factorization_I:
-assumes ind: "analytic_factor_p F"
+  assumes ind: "analytic_factor_p F"
     and \<xi>ni: "\<xi> \<notin> F"
   shows "analytic_factor_p (insert \<xi> F)"
 unfolding analytic_factor_p_def
 proof (intro allI impI)
   fix f S K
   assume af: "f analytic_on S"
-     and KS: "K \<subseteq> S"
-     and con: "connected K"
-     and nz: "f not_zero_on K"
-     and cm: "compact K"
-     and zr: "{z \<in> K. f z = 0} = insert \<xi> F"
+    and KS: "K \<subseteq> S"
+    and con: "connected K"
+    and nz: "f not_zero_on K"
+    and cm: "compact K"
+    and zr: "{z \<in> K. f z = 0} = insert \<xi> F"
   show "analytic_factor_p' f S K"
   proof -
     have "f analytic_on S" "K \<subseteq> S" "connected K"
@@ -1008,16 +1016,16 @@ proof (intro allI impI)
 qed
 
 theorem analytic_factorization:
-assumes af: "f analytic_on S"
+  assumes af: "f analytic_on S"
     and KS: "K \<subseteq> S"
     and con: "connected K"
     and "compact K"
     and "f not_zero_on K"
-obtains g n and \<alpha> :: "\<nat> \<Rightarrow> \<complex>" where
-  "g analytic_on S"
-  "\<And>z. z \<in> K \<Longrightarrow> g z \<noteq> 0"
-  "\<And>z. z \<in> S \<Longrightarrow> f z = g z * (\<Prod>k<n. (z - \<alpha> k))"
-  "\<alpha> ` {..<n} \<subseteq> K"
+  obtains g n and \<alpha> :: "\<nat> \<Rightarrow> \<complex>" where
+    "g analytic_on S"
+    "\<And>z. z \<in> K \<Longrightarrow> g z \<noteq> 0"
+    "\<And>z. z \<in> S \<Longrightarrow> f z = g z * (\<Prod>k<n. (z - \<alpha> k))"
+    "\<alpha> ` {..<n} \<subseteq> K"
 proof -
   have \<open>finite {z \<in> K. f z = 0}\<close> using assms by (rule analytic_compact_finite_zeros)
   moreover have \<open>finite F \<Longrightarrow> analytic_factor_p F\<close> for F
@@ -1030,13 +1038,13 @@ qed
 section \<open>Borel-Caratheodory theorem\<close>
 
 theorem Schwarz_Lemma1:
-fixes f :: "\<complex> \<Rightarrow> \<complex>"
-  and \<xi> :: "\<complex>"
-assumes "f holomorphic_on ball 0 1"
-  and "f 0 = 0"
-  and "\<And>z. ║z║ < 1 \<Longrightarrow> ║f z║ \<le> 1"
-  and "║\<xi>║ < 1"
-shows "║f \<xi>║ \<le> ║\<xi>║"
+  fixes f :: "\<complex> \<Rightarrow> \<complex>"
+    and \<xi> :: "\<complex>"
+  assumes "f holomorphic_on ball 0 1"
+    and "f 0 = 0"
+    and "\<And>z. ║z║ < 1 \<Longrightarrow> ║f z║ \<le> 1"
+    and "║\<xi>║ < 1"
+  shows "║f \<xi>║ \<le> ║\<xi>║"
 proof (cases "f constant_on ball 0 1")
   assume "f constant_on ball 0 1"
   thus ?thesis unfolding constant_on_def
@@ -1062,13 +1070,13 @@ next
 qed
 
 theorem Schwarz_Lemma2:
-fixes f :: "\<complex> \<Rightarrow> \<complex>"
-  and \<xi> :: "\<complex>"
-assumes holf: "f holomorphic_on ball 0 R"
-  and hR: "0 < R" and nz: "f 0 = 0"
-  and bn: "\<And>z. ║z║ < R \<Longrightarrow> ║f z║ \<le> 1"
-  and \<xi>R: "║\<xi>║ < R"
-shows "║f \<xi>║ \<le> ║\<xi>║ / R"
+  fixes f :: "\<complex> \<Rightarrow> \<complex>"
+    and \<xi> :: "\<complex>"
+  assumes holf: "f holomorphic_on ball 0 R"
+    and hR: "0 < R" and nz: "f 0 = 0"
+    and bn: "\<And>z. ║z║ < R \<Longrightarrow> ║f z║ \<le> 1"
+    and \<xi>R: "║\<xi>║ < R"
+  shows "║f \<xi>║ \<le> ║\<xi>║ / R"
 proof -
   define \<phi> where "\<phi> z \<equiv> f (R * z)" for z :: \<complex>
   have "║\<xi> / R║ < 1" using \<xi>R hR by (subst nonzero_norm_divide, auto)
@@ -1089,7 +1097,7 @@ proof -
 qed
 
 theorem Borel_Caratheodory1:
-assumes hr: "0 < R" "0 < r" "r < R"
+  assumes hr: "0 < R" "0 < r" "r < R"
     and f0: "f 0 = 0"
     and hf: "\<And>z. ║z║ < R \<Longrightarrow> Re (f z) \<le> A"
     and holf: "f holomorphic_on (ball 0 R)"
@@ -1198,7 +1206,7 @@ proof -
 qed
 
 theorem Borel_Caratheodory2:
-assumes hr: "0 < R" "0 < r" "r < R"
+  assumes hr: "0 < R" "0 < r" "r < R"
     and hf: "\<And>z. ║z║ < R \<Longrightarrow> Re (f z - f 0) \<le> A"
     and holf: "f holomorphic_on (ball 0 R)"
     and zr: "║z║ \<le> r"
@@ -1206,13 +1214,43 @@ assumes hr: "0 < R" "0 < r" "r < R"
 proof -
   define g where "g z \<equiv> f z - f 0" for z
   show ?thesis
-  by (fold g_def, rule Borel_Caratheodory1)
-     (unfold g_def, use assms in \<open>auto simp add: holomorphic_intros\<close>)
+    by (fold g_def, rule Borel_Caratheodory1)
+       (unfold g_def, insert assms, auto intro: holomorphic_intros)
+qed
+
+theorem holomorphic_on_shift [holomorphic_intros]:
+  assumes "f holomorphic_on ((\<lambda>z. s + z) ` A)"
+  shows "(\<lambda>z. f (s + z)) holomorphic_on A"
+proof -
+  have "(f \<circ> (\<lambda>z. s + z)) holomorphic_on A"
+    using assms by (intro holomorphic_on_compose holomorphic_intros)
+  thus ?thesis unfolding comp_def by auto
+qed
+
+theorem holomorphic_logderiv [holomorphic_intros]:
+  assumes "f holomorphic_on A" "open A" "\<And>z. z \<in> A \<Longrightarrow> f z \<noteq> 0"
+  shows "(\<lambda>s. logderiv f s) holomorphic_on A"
+  using assms unfolding logderiv_def by (intro holomorphic_intros)
+
+theorem Borel_Caratheodory3:
+  assumes hr: "0 < R" "0 < r" "r < R"
+    and hf: "\<And>w. w \<in> ball s R \<Longrightarrow> Re (f w - f s) \<le> A"
+    and holf: "f holomorphic_on (ball s R)"
+    and zr: "z \<in> ball s r"
+  shows "║f z - f s║ \<le> 2*r/(R-r) * A"
+proof -
+  define g where "g w \<equiv> f (s + w)" for w
+  have "\<And>w. ║w║ < R \<Longrightarrow> Re (f (s + w) - f s) \<le> A"
+    by (intro hf) (auto simp add: dist_complex_def)
+  hence "║g (z - s) - g 0║ \<le> 2*r/(R-r) * A"
+    by (intro Borel_Caratheodory2, unfold g_def, insert assms)
+       (auto intro: holomorphic_intros simp add: dist_complex_def norm_minus_commute)
+  thus ?thesis unfolding g_def by auto
 qed
 
 theorem logderiv_prod:
-fixes f :: "'n \<Rightarrow> 'f \<Rightarrow> 'f :: real_normed_field"
-assumes fin: "finite I"
+  fixes f :: "'n \<Rightarrow> 'f \<Rightarrow> 'f :: real_normed_field"
+  assumes fin: "finite I"
     and lder: "\<And>i. i \<in> I \<Longrightarrow> f i #l\<Zprime> a"
   shows "logderiv (\<lambda>x. \<Prod>i\<in>I. f i x) a = (\<Sum>i\<in>I. logderiv (f i) a)" (is ?P)
     and "(\<lambda>x. \<Prod>i\<in>I. f i x) #l\<Zprime> a" (is ?Q)
@@ -1260,7 +1298,7 @@ proof -
 qed
 
 theorem logderiv_mult:
-assumes "f #l\<Zprime> a"
+  assumes "f #l\<Zprime> a"
     and "g #l\<Zprime> a"
   shows "logderiv (\<lambda>z. f z * g z) a = logderiv f a + logderiv g a" (is ?P)
     and "(\<lambda>z. f z * g z) #l\<Zprime> a" (is ?Q)
@@ -1278,7 +1316,7 @@ proof -
 qed
 
 theorem logderiv_cong_ev:
-assumes "\<forall>\<^sub>F x in nhds x. f x = g x"
+  assumes "\<forall>\<^sub>F x in nhds x. f x = g x"
     and "x = y"
   shows "logderiv f x = logderiv g y"
 proof -
@@ -1288,37 +1326,27 @@ proof -
 qed
 
 theorem logderiv_linear:
-assumes "z \<noteq> a"
+  assumes "z \<noteq> a"
   shows "logderiv (\<lambda>w. w - a) z = 1 / (z - a)"
     and "(\<lambda>w. w - z) #l\<Zprime> a"
 unfolding logderiv_def log_differentiable_def
   using assms by (auto simp add: derivative_intros)
 
 theorem lemma_3_9_beta1:
-fixes f M r s\<^sub>0
-assumes zl: "0 < r" "0 \<le> M"
-   and hf: "f holomorphic_on ball 0 r"
-   and ne: "\<And>s. s \<in> ball 0 r \<Longrightarrow> f s \<noteq> 0"
-   and bn: "\<And>s. s \<in> ball 0 r \<Longrightarrow> ║f s / f 0║ \<le> exp M"
- shows "║logderiv f 0║ \<le> 4 * M / r"
-proof -
+  fixes f M r s\<^sub>0
+  assumes zl: "0 < r" "0 \<le> M"
+    and hf: "f holomorphic_on ball 0 r"
+    and ne: "\<And>z. z \<in> ball 0 r \<Longrightarrow> f z \<noteq> 0"
+    and bn: "\<And>z. z \<in> ball 0 r \<Longrightarrow> ║f z / f 0║ \<le> exp M"
+  shows "║logderiv f 0║ \<le> 4 * M / r"
+    and "\<forall>s\<in>cball 0 (r / 4). ║logderiv f s║ \<le> 8 * M / r" 
+proof (goal_cases)
   obtain g
   where holg: "g holomorphic_on ball 0 r"
     and exp_g: "\<And>x. x \<in> ball 0 r \<Longrightarrow> exp (g x) = f x"
-  by (rule holomorphic_logarithm_exists [of "ball 0 r" f 0]) (use zl(1) ne hf in auto)
+    by (rule holomorphic_logarithm_exists [of "ball 0 r" f 0])
+       (use zl(1) ne hf in auto)
   have f0: "exp (g 0) = f 0" using exp_g zl(1) by auto
-  have "deriv f 0 = deriv (\<lambda>x. exp (g x)) 0"
-  by (rule deriv_cong_ev, subst eventually_nhds)
-     (rule exI [where x = "ball 0 (r / 2)"], use exp_g zl(1) in auto)
-  also have "\<dots> = exp (g 0) * deriv g 0"
-  by (intro DERIV_fun_exp [THEN DERIV_imp_deriv] field_differentiable_derivI)
-     (meson holg open_ball zl(1) centre_in_ball holomorphic_on_imp_differentiable_at)
-  finally have dg: "deriv f 0 / f 0 = deriv g 0"
-  proof -
-    assume *: "deriv f 0 = exp (g 0) * deriv g 0"
-    have "f 0 \<noteq> 0" using ne zl(1) by auto
-    thus ?thesis using * f0 by auto
-  qed
   have "Re (g z - g 0) \<le> M" if *: "║z║ < r" for z
   proof -
     have "exp (Re (g z - g 0)) = ║exp (g z - g 0)║"
@@ -1334,34 +1362,102 @@ proof -
     by (intro Borel_Caratheodory2 [where f = g])
        (use zl(1) holg * in auto)
   also have "\<dots> = 2 * M" using zl(1) by auto
-  finally have "\<And>z. ║z║ \<le> r / 2 \<Longrightarrow> ║g z - g 0║ \<le> 2 * M" .
-  hence "\<And>z. ║0 - z║ = r / 2 \<Longrightarrow> ║g z - g 0║ \<le> 2 * M" by auto
-  moreover have "(\<lambda>z. g z - g 0) holomorphic_on cball 0 (r / 2)"
-    by (rule holomorphic_on_subset [where s="ball 0 r"])
-       (use zl(1) holg in \<open>auto simp add: holomorphic_intros\<close>)
-  hence "(\<lambda>z. g z - g 0) holomorphic_on ball 0 (r / 2)"
-        "continuous_on (cball 0 (r / 2)) (\<lambda>z. g z - g 0)"
-    by (rule holomorphic_on_subset [where s="cball 0 (r / 2)"], auto)
-       (rule holomorphic_on_imp_continuous_on, auto)
-  ultimately have "║(deriv ^^ 1) (\<lambda>z. g z - g 0) 0║ \<le> fact 1 * (2 * M) / (r / 2) ^ 1"
-    using zl(1) by (intro Cauchy_inequality) auto
-  also have "\<dots> = 4 * M / r" by auto
-  also have "deriv g 0 = deriv (\<lambda>z. g z - g 0) 0"
-    by (subst deriv_diff, auto, rule holomorphic_on_imp_differentiable_at, use holg zl(1) in auto)
-  hence "║deriv g 0║ = ║(deriv ^^ 1) (\<lambda>z. g z - g 0) 0║" by (auto simp add: derivative_intros)
-  ultimately have "║deriv g 0║ \<le> 4 * M / r" by auto
-  thus ?thesis unfolding logderiv_def by (subst dg)
+  finally have hg: "\<And>z. ║z║ \<le> r / 2 \<Longrightarrow> ║g z - g 0║ \<le> 2 * M" .
+  have result: "║logderiv f s║ \<le> 2 * M / r'"
+    when "cball s r' \<subseteq> cball 0 (r / 2)" "0 < r'" "║s║ < r / 2" for s r'
+  proof -
+    have contain: "\<And>z. ║s - z║ \<le> r' \<Longrightarrow> ║z║ \<le> r / 2"
+      using that by (auto simp add: cball_def subset_eq dist_complex_def)
+    have contain': "║z║ < r" when "║s - z║ \<le> r'" for z
+      using zl(1) contain [of z] that by auto
+    have s_in_ball: "s \<in> ball 0 r" using that(3) zl(1) by auto
+    have "deriv f s = deriv (\<lambda>x. exp (g x)) s"
+      by (rule deriv_cong_ev, subst eventually_nhds)
+         (rule exI [where x = "ball 0 (r / 2)"], use exp_g zl(1) that(3) in auto)
+    also have "\<dots> = exp (g s) * deriv g s"
+      by (intro DERIV_fun_exp [THEN DERIV_imp_deriv] field_differentiable_derivI)
+         (meson holg open_ball s_in_ball holomorphic_on_imp_differentiable_at)
+    finally have df: "logderiv f s = deriv g s"
+    proof -
+      assume "deriv f s = exp (g s) * deriv g s"
+      moreover have "f s \<noteq> 0" by (intro ne s_in_ball)
+      ultimately show ?thesis
+        unfolding logderiv_def using exp_g [OF s_in_ball] by auto
+    qed
+    have "\<And>z. ║s - z║ = r' \<Longrightarrow> ║g z - g 0║ \<le> 2 * M"
+      using contain by (intro hg) auto
+    moreover have "(\<lambda>z. g z - g 0) holomorphic_on cball s r'"
+      by (rule holomorphic_on_subset [where s="ball 0 r"], insert holg)
+         (auto intro: holomorphic_intros contain' simp add: dist_complex_def)
+    moreover hence "continuous_on (cball s r') (\<lambda>z. g z - g 0)"
+      by (rule holomorphic_on_imp_continuous_on)
+    ultimately have "║(deriv ^^ 1) (\<lambda>z. g z - g 0) s║ \<le> fact 1 * (2 * M) / r' ^ 1"
+      using that(2) by (intro Cauchy_inequality) auto
+    also have "\<dots> = 2 * M / r'" by auto
+    also have "deriv g s = deriv (\<lambda>z. g z - g 0) s"
+      by (subst deriv_diff, auto)
+         (rule holomorphic_on_imp_differentiable_at, use holg s_in_ball in auto)
+    hence "║deriv g s║ = ║(deriv ^^ 1) (\<lambda>z. g z - g 0) s║"
+      by (auto simp add: derivative_intros)
+    ultimately show ?thesis by (subst df) auto
+  qed
+  case 1 show ?case using result [of 0 "r / 2"] zl(1) by auto
+  case 2 show ?case proof safe
+    fix s :: \<complex> assume hs: "s \<in> cball 0 (r / 4)"
+    hence "z \<in> cball s (r / 4) \<Longrightarrow> ║z║ \<le> r / 2" for z
+      using norm_triangle_sub [of "z" "s"]
+      by (auto simp add: dist_complex_def norm_minus_commute)
+    hence "║logderiv f s║ \<le> 2 * M / (r / 4)"
+      by (intro result) (use zl(1) hs in auto)
+    also have "\<dots> = 8 * M / r" by auto
+    finally show "║logderiv f s║ \<le> 8 * M / r" .
+  qed
+qed
+
+lemma deriv_shift:
+  assumes "f #f\<Zprime> at (a + x)"
+  shows "deriv (\<lambda>t. f (a + t)) x = deriv f (a + x)"
+proof -
+  have "deriv (f \<circ> (\<lambda>t. a + t)) x = deriv f (a + x)"
+    by (subst deriv_chain) (auto intro: assms)
+  thus ?thesis unfolding comp_def by auto
+qed
+
+lemma logderiv_shift:
+  assumes "f #f\<Zprime> at (a + x)"
+  shows "logderiv (\<lambda>t. f (a + t)) x = logderiv f (a + x)"
+  unfolding logderiv_def by (subst deriv_shift) (auto intro: assms)
+
+theorem lemma_3_9_beta1':
+  fixes f M r s\<^sub>0
+  assumes zl: "0 < r" "0 \<le> M"
+    and hf: "f holomorphic_on ball s r"
+    and ne: "\<And>z. z \<in> ball s r \<Longrightarrow> f z \<noteq> 0"
+    and bn: "\<And>z. z \<in> ball s r \<Longrightarrow> ║f z / f s║ \<le> exp M"
+    and hs: "z \<in> cball s (r / 4)"
+  shows "║logderiv f z║ \<le> 8 * M / r" 
+proof -
+  define g where "g z \<equiv> f (s + z)" for z
+  have "\<forall>z \<in> cball 0 (r / 4). ║logderiv g z║ \<le> 8 * M / r"
+    by (intro lemma_3_9_beta1 assms, unfold g_def)
+       (auto simp add: dist_complex_def intro!: assms holomorphic_on_shift)
+  note bspec [OF this, of "z - s"]
+  moreover have "f #f\<Zprime> at z"
+    by (rule holomorphic_on_imp_differentiable_at [where ?s = "ball s r"])
+       (insert hs zl(1), auto intro: hf simp add: dist_complex_def)
+  ultimately show ?thesis unfolding g_def using hs
+    by (auto simp add: dist_complex_def logderiv_shift)
 qed
 
 theorem lemma_3_9_beta2:
-fixes f M r
-assumes zl: "0 < r" "0 \<le> M"
-   and af: "f analytic_on cball 0 r"
-   and f0: "f 0 \<noteq> 0"
-   and rz: "\<And>z. z \<in> cball 0 r \<Longrightarrow> Re z > 0 \<Longrightarrow> f z \<noteq> 0"
-   and bn: "\<And>z. z \<in> cball 0 r \<Longrightarrow> ║f z / f 0║ \<le> exp M"
-   and hg: "\<Gamma> \<subseteq> {z \<in> cball 0 (r / 2). f z = 0 \<and> Re z \<le> 0}"
-shows "- Re (logderiv f 0) \<le> 8 * M / r + Re (\<Sum>z\<in>\<Gamma>. 1 / z)"
+  fixes f M r
+  assumes zl: "0 < r" "0 \<le> M"
+    and af: "f analytic_on cball 0 r"
+    and f0: "f 0 \<noteq> 0"
+    and rz: "\<And>z. z \<in> cball 0 r \<Longrightarrow> Re z > 0 \<Longrightarrow> f z \<noteq> 0"
+    and bn: "\<And>z. z \<in> cball 0 r \<Longrightarrow> ║f z / f 0║ \<le> exp M"
+    and hg: "\<Gamma> \<subseteq> {z \<in> cball 0 (r / 2). f z = 0 \<and> Re z \<le> 0}"
+  shows "- Re (logderiv f 0) \<le> 8 * M / r + Re (\<Sum>z\<in>\<Gamma>. 1 / z)"
 proof -
   have nz': "f not_zero_on cball 0 (r / 2)"
     unfolding not_zero_on_def using f0 zl(1) by auto
@@ -1425,7 +1521,7 @@ proof -
     by (rule analytic_on_subset [where S = "cball 0 r"])
        (use ag zl(1) in auto)
   have "║logderiv g 0║ \<le> 4 * M / (r / 2)"
-    by (rule lemma_3_9_beta1 [where f = g])
+    by (rule lemma_3_9_beta1(1) [where f = g])
        (use zl ng bn' holg in auto)
   also have "\<dots> = 8 * M / r" by auto
   finally have bn_g: "║logderiv g 0║ \<le> 8 * M / r" unfolding logderiv_def by auto
@@ -1501,56 +1597,47 @@ proof -
 qed
 
 theorem lemma_3_9_beta3:
-fixes f M r and s :: \<complex>
-assumes zl: "0 < r" "0 \<le> M"
-   and af: "f analytic_on cball s r"
-   and f0: "f s \<noteq> 0"
-   and rz: "\<And>z. z \<in> cball s r \<Longrightarrow> Re z > Re s \<Longrightarrow> f z \<noteq> 0"
-   and bn: "\<And>z. z \<in> cball s r \<Longrightarrow> ║f z / f s║ \<le> exp M"
-   and hg: "\<Gamma> \<subseteq> {z \<in> cball s (r / 2). f z = 0 \<and> Re z \<le> Re s}"
-shows "- Re (logderiv f s) \<le> 8 * M / r + Re (\<Sum>z\<in>\<Gamma>. 1 / (z - s))"
+  fixes f M r and s :: \<complex>
+  assumes zl: "0 < r" "0 \<le> M"
+    and af: "f analytic_on cball s r"
+    and f0: "f s \<noteq> 0"
+    and rz: "\<And>z. z \<in> cball s r \<Longrightarrow> Re z > Re s \<Longrightarrow> f z \<noteq> 0"
+    and bn: "\<And>z. z \<in> cball s r \<Longrightarrow> ║f z / f s║ \<le> exp M"
+    and hg: "\<Gamma> \<subseteq> {z \<in> cball s (r / 2). f z = 0 \<and> Re z \<le> Re s}"
+  shows "- Re (logderiv f s) \<le> 8 * M / r + Re (\<Sum>z\<in>\<Gamma>. 1 / (z - s))"
 proof -
-  define g where "g \<equiv> f \<circ> (\<lambda>z. z + s)"
+  define g where "g \<equiv> f \<circ> (\<lambda>z. s + z)"
   define \<Delta> where "\<Delta> \<equiv> (\<lambda>z. z - s) ` \<Gamma>"
-  have add_cball: "(\<lambda>z. z + s) ` cball 0 r = cball s r"
-    unfolding cball_def dist_complex_def
-  proof (auto cong: image_iff, rule_tac exI)
-    fix x assume "║s - x║ \<le> r"
-    thus "║-(s - x)║ \<le> r \<and> x = -(s - x) + s"
-      by (auto simp only: norm_minus_cancel) auto
-  qed
-  hence 0: "g analytic_on cball 0 r"
+  hence 1: "g analytic_on cball 0 r"
     unfolding g_def using af
     by (intro analytic_on_compose) (auto simp add: analytic_intros)
   moreover have "g 0 \<noteq> 0" unfolding g_def using f0 by auto
   moreover have "(Re z > 0 \<longrightarrow> g z \<noteq> 0) \<and> ║g z / g 0║ \<le> exp M"
-    if 1: "z \<in> cball 0 r" for z
+    if hz: "z \<in> cball 0 r" for z
   proof (intro impI conjI)
-    assume 2: "0 < Re z"
-    have "z + s \<in> cball s r" using 1 add_cball by auto
-    moreover have "Re (z + s) > Re s" using 2 by auto
-    ultimately show "g z \<noteq> 0" unfolding g_def comp_def using rz by auto
+    assume hz': "0 < Re z"
+    thus "g z \<noteq> 0" unfolding g_def comp_def
+      using hz by (intro rz) (auto simp add: dist_complex_def)
   next
     show "║g z / g 0║ \<le> exp M"
-      unfolding g_def comp_def by (metis 1 add_0 imageI add_cball bn)
+      unfolding g_def comp_def using hz
+      by (auto simp add: dist_complex_def intro!: bn)
   qed
   moreover have "\<Delta> \<subseteq> {z \<in> cball 0 (r / 2). g z = 0 \<and> Re z \<le> 0}"
   proof auto
     fix z assume "z \<in> \<Delta>"
-    hence *: "z + s \<in> \<Gamma>" unfolding \<Delta>_def by auto
-    have "dist (0 + s) (z + s) * 2 \<le> r" using hg * by auto
-    thus "║z║ * 2 \<le> r" by (subst (asm) dist_add_cancel2) auto
-    show "g z = 0" "Re z \<le> 0"
-      unfolding g_def comp_def using hg * by auto
+    hence "s + z \<in> \<Gamma>" unfolding \<Delta>_def by auto
+    thus "g z = 0" "Re z \<le> 0" "║z║ * 2 \<le> r"
+      unfolding g_def comp_def using hg by (auto simp add: dist_complex_def)
   qed
   ultimately have "- Re (logderiv g 0) \<le> 8 * M / r +  Re (\<Sum>z\<in>\<Delta>. 1 / z)"
     by (intro lemma_3_9_beta2) (use zl in auto)
   also have "\<dots> = 8 * M / r +  Re (\<Sum>z\<in>\<Gamma>. 1 / (z - s))"
     unfolding \<Delta>_def by (subst sum.reindex) (unfold inj_on_def, auto)
-  finally show ?thesis unfolding g_def logderiv_def using zl(1)
-    by (subst (asm) deriv_chain)
-       (auto simp add: derivative_intros
-             intro!: analytic_on_imp_differentiable_at [OF af])
+  finally show ?thesis
+    unfolding g_def comp_def using zl(1)
+    by (subst (asm) logderiv_shift)
+       (auto intro: analytic_on_imp_differentiable_at [OF af])
 qed
 
 section \<open>Zero-free region of zeta funcion\<close>
@@ -1565,8 +1652,8 @@ lemma norm_nat_power: "║n \<nat>ᣔ (s :: \<complex>)║ = n ᣔ (Re s)"
   unfolding powr_def by auto
 
 lemma suminf_norm_bound:
-fixes f :: "\<nat> \<Rightarrow> 'a :: banach"
-assumes "summable g"
+  fixes f :: "\<nat> \<Rightarrow> 'a :: banach"
+  assumes "summable g"
     and "\<And>n. ║f n║ \<le> g n"
   shows "║suminf f║ \<le> (\<Sum>n. g n)"
 proof -
@@ -1638,7 +1725,7 @@ proof -
 qed
 
 lemma zeta_pole_eq:
-assumes "s \<noteq> 1"
+  assumes "s \<noteq> 1"
   shows "\<zeta> s = pre_zeta 1 s + 1 / (s - 1)"
 proof -
   have "\<zeta> s - 1 / (s - 1) = pre_zeta 1 s" by (intro zeta_minus_pole_eq assms)
@@ -1646,7 +1733,7 @@ proof -
 qed
 
 lemma zeta_bound_trivial':
-assumes "1 / 2 \<le> Re s \<and> Re s \<le> 2"
+  assumes "1 / 2 \<le> Re s \<and> Re s \<le> 2"
     and "\<bar>Im s\<bar> \<ge> 1 / 11"
   shows "║\<zeta> s║ \<le> 15 + 2 * \<bar>Im s\<bar>"
 proof -
@@ -1679,7 +1766,7 @@ proof -
 qed
 
 lemma zeta_bound_gt_1:
-assumes "1 < Re s"
+  assumes "1 < Re s"
   shows "║\<zeta> s║ \<le> Re s / (Re s - 1)"
 proof -
   have "║\<zeta> s║ \<le> Re (\<zeta> (Re s))" by (intro zeta_bound' assms)
@@ -1703,7 +1790,7 @@ proof -
 qed
 
 lemma zeta_bound_trivial:
-assumes "1 / 2 \<le> Re s" and "\<bar>Im s\<bar> \<ge> 1 / 11"
+  assumes "1 / 2 \<le> Re s" and "\<bar>Im s\<bar> \<ge> 1 / 11"
   shows "║\<zeta> s║ \<le> 15 + 2 * \<bar>Im s\<bar>"
 proof (cases "Re s \<le> 2")
   assume "Re s \<le> 2"
@@ -1718,7 +1805,7 @@ next
 qed
 
 lemma zeta_nonzero_small_imag':
-assumes "\<bar>Im s\<bar> \<le> 13 / 22" and "Re s \<ge> 1 / 2" and "Re s < 1"
+  assumes "\<bar>Im s\<bar> \<le> 13 / 22" and "Re s \<ge> 1 / 2" and "Re s < 1"
   shows "\<zeta> s \<noteq> 0"
 proof -
   have "║pre_zeta 1 s║ \<le> (1 + ║s║ / Re s) / 2 * 1 ᣔ - Re s"
@@ -1762,7 +1849,7 @@ proof -
 qed
 
 lemma zeta_nonzero_small_imag:
-assumes "\<bar>Im s\<bar> \<le> 13 / 22" and "Re s > 0" and "s \<noteq> 1"
+  assumes "\<bar>Im s\<bar> \<le> 13 / 22" and "Re s > 0" and "s \<noteq> 1"
   shows "\<zeta> s \<noteq> 0"
 proof -
   consider "Re s \<le> 1 / 2" | "1 / 2 \<le> Re s \<and> Re s < 1" | "Re s \<ge> 1" by fastforce
@@ -1786,6 +1873,57 @@ proof -
   also have "\<dots> \<le> Re (Re s) / (Re (Re s) - 1)"
     by (intro zeta_bound_gt_1) (use assms in auto)
   also have "\<dots> = Re s / (Re s - 1)" by auto
+  finally show ?thesis .
+qed
+
+lemma deriv_zeta_bound:
+  fixes s :: \<complex>
+  assumes Hr: "0 < r" and Hs: "s \<noteq> 1"
+    and hB: "\<And>w. ║s - w║ = r \<Longrightarrow> ║pre_zeta 1 w║ \<le> B"
+  shows "║\<zeta>\<Zprime> s║ \<le> B / r + 1 / ║s - 1║\<^sup>2"
+proof -
+  have "║\<zeta>\<Zprime> s║ = ║deriv (pre_zeta 1) s - 1 / (s - 1)\<^sup>2║"
+  proof -
+    let ?A = "UNIV - {1 :: \<complex>}"
+    let ?f = "\<lambda>s. pre_zeta 1 s + 1 / (s - 1)"
+    let ?v = "deriv (pre_zeta 1) s + (0 * (s - 1) - 1 * (1 - 0)) / (s - 1)\<^sup>2"
+    let ?v' = "deriv (pre_zeta 1) s - 1 / (s - 1 :: \<complex>)\<^sup>2"
+    have "DERIV \<zeta> s :> ?v' = DERIV ?f s :> ?v'"
+      by (rule DERIV_cong_ev, auto, subst eventually_nhds)
+         (rule exI [where x = ?A], insert Hs, auto intro: zeta_pole_eq)
+    moreover have "DERIV ?f s :> ?v"
+      unfolding power2_eq_square
+      by (intro derivative_intros field_differentiable_derivI holomorphic_pre_zeta
+          holomorphic_on_imp_differentiable_at [where s = ?A])
+         (use Hs in auto)
+    moreover have "?v = ?v'" by (auto simp add: field_simps)
+    ultimately have "DERIV \<zeta> s :> ?v'" by auto
+    moreover have "DERIV \<zeta> s :> \<zeta>\<Zprime> s"
+      by (intro field_differentiable_derivI field_differentiable_at_zeta)
+         (use Hs in auto)
+    ultimately have "?v' = deriv \<zeta> s" by (rule DERIV_unique)
+    thus ?thesis by auto
+  qed
+  also have "\<dots> \<le> ║deriv (pre_zeta 1) s║ + ║1 / (s - 1)\<^sup>2║" by (rule norm_triangle_ineq4)
+  also have "\<dots> \<le> B / r + 1 / ║s - 1║\<^sup>2"
+  proof -
+    have "║(deriv ^^ 1) (pre_zeta 1) s║ \<le> fact 1 * B / r ^ 1"
+      by (intro Cauchy_inequality holomorphic_pre_zeta continuous_on_pre_zeta assms) auto
+    thus ?thesis by (auto simp add: norm_divide norm_power)
+  qed
+  finally show ?thesis .
+qed
+
+lemma zeta_lower_bound:
+  assumes "0 < Re s" "s \<noteq> 1"
+  shows "1 / ║s - 1║ - ║s║ / Re s \<le> ║\<zeta> s║"
+proof -
+  have "║pre_zeta 1 s║ \<le> ║s║ / Re s" by (intro pre_zeta_1_bound assms)
+  hence "1 / ║s - 1║ - ║s║ / Re s \<le> ║1 / (s - 1)║ - ║pre_zeta 1 s║"
+    using assms by (auto simp add: norm_divide)
+  also have "\<dots> \<le> ║pre_zeta 1 s + 1 / (s - 1)║"
+    by (subst add.commute) (rule norm_diff_ineq)
+  also have "\<dots> = ║\<zeta> s║" using assms by (subst zeta_pole_eq) auto
   finally show ?thesis .
 qed
 
@@ -1825,52 +1963,20 @@ proof -
     qed
     finally show ?thesis .
   qed
-  hence "║(deriv ^^ 1) (pre_zeta 1) \<sigma>║ \<le> fact 1 * (\<surd>2) / (1 / \<surd>2) ^ 1"
-    by (intro Cauchy_inequality holomorphic_pre_zeta continuous_on_pre_zeta) auto
-  hence 1: "║deriv (pre_zeta 1) \<sigma>║ \<le> 2" by auto
-  have "║deriv \<zeta> \<sigma>║ = ║deriv (pre_zeta 1) \<sigma> - 1 / (\<sigma> - 1 :: \<complex>)\<^sup>2║"
-  proof -
-    let ?A = "{s. Re s > 1}"
-    let ?f = "\<lambda>s. pre_zeta 1 s + 1 / (s - 1)"
-    let ?v = "deriv (pre_zeta 1) \<sigma> + (0 * ((\<sigma> :: \<complex>) - 1) - 1 * (1 - 0)) / ((\<sigma> :: \<complex>) - 1)\<^sup>2"
-    let ?v' = "deriv (pre_zeta 1) \<sigma> - 1 / (\<sigma> - 1 :: \<complex>)\<^sup>2"
-    have 1: "open ?A" by (rule open_halfspace_Re_gt)
-    note 1 = assms(1) 1
-    have "DERIV \<zeta> \<sigma> :> ?v' = DERIV ?f \<sigma> :> ?v'"
-      by (rule DERIV_cong_ev, auto, subst eventually_nhds)
-         (rule exI [where x = ?A], auto intro: 1 zeta_pole_eq)
-    moreover have "DERIV ?f \<sigma> :> ?v"
-      by (unfold power2_eq_square, intro
-          derivative_intros field_differentiable_derivI holomorphic_pre_zeta
-          holomorphic_on_imp_differentiable_at [where s = ?A])
-         (use 1 in auto)
-    moreover have "?v = ?v'" by (auto simp add: field_simps)
-    ultimately have "DERIV \<zeta> \<sigma> :> ?v'" by auto
-    moreover have "DERIV \<zeta> \<sigma> :> deriv \<zeta> \<sigma>"
-      by (intro field_differentiable_derivI field_differentiable_at_zeta)
-         (use assms(1) in auto)
-    ultimately have "?v' = deriv \<zeta> \<sigma>" by (rule DERIV_unique)
-    thus ?thesis by auto
-  qed
-  also have "\<dots> \<le> ║deriv (pre_zeta 1) \<sigma>║ + ║1 / (\<sigma> - 1 :: \<complex>)\<^sup>2║" by (rule norm_triangle_ineq4)
-  also have "\<dots> \<le> 2 + 1 / (\<sigma> - 1)\<^sup>2" using 1
-    by (auto simp add: norm_divide norm_power simp del: of_real_diff)
+  hence "║\<zeta>\<Zprime> \<sigma>║ \<le> \<surd> 2 / (1 / \<surd> 2) + 1 / ║(\<sigma> :: \<complex>) - 1║\<^sup>2"
+    by (intro deriv_zeta_bound) (use assms(1) in auto)
+  also have "\<dots> \<le> 2 + 1 / (\<sigma> - 1)\<^sup>2"
+    by (subst in_Reals_norm) (use assms(1) in auto)
   also have "\<dots> = (2 * \<sigma>\<^sup>2 - 4 * \<sigma> + 3) / (\<sigma> - 1)\<^sup>2"
   proof -
     have "\<sigma> * \<sigma> - 2 * \<sigma> + 1 = (\<sigma> - 1) * (\<sigma> - 1)" by (auto simp add: field_simps)
     also have "\<dots> \<noteq> 0" using assms(1) by auto
     finally show ?thesis by (auto simp add: power2_eq_square field_simps)
   qed
-  finally have 1: "║deriv \<zeta> \<sigma>║ \<le> (2 * \<sigma>\<^sup>2 - 4 * \<sigma> + 3) / (\<sigma> - 1)\<^sup>2" .
-  have "(2 - \<sigma>) / (\<sigma> - 1) = 1 / (\<sigma> - 1) - 1" using assms(1) by (auto simp add: field_simps)
-  also have "\<dots> \<le> ║1 / (\<sigma> - 1 :: \<complex>)║ - ║pre_zeta 1 \<sigma>║"
-  proof -
-    have "║pre_zeta 1 \<sigma>║ \<le> ║\<sigma> :: \<complex>║ / Re \<sigma>" by (rule pre_zeta_1_bound) (use assms(1) in auto)
-    also have "\<dots> = 1" using assms(1) by auto
-    finally show ?thesis using assms(1) by (auto simp add: norm_divide simp del: of_real_diff)
-  qed
-  also have "\<dots> \<le> ║pre_zeta 1 \<sigma> + 1 / (\<sigma> - 1 :: \<complex>)║" by (subst add.commute) (rule norm_diff_ineq)
-  also have "\<dots> = ║\<zeta> \<sigma>║" using zeta_pole_eq assms(1) by auto
+  finally have 1: "║\<zeta>\<Zprime> \<sigma>║ \<le> (2 * \<sigma>\<^sup>2 - 4 * \<sigma> + 3) / (\<sigma> - 1)\<^sup>2" .
+  have "(2 - \<sigma>) / (\<sigma> - 1) = 1 / ║(\<sigma> :: \<complex>) - 1║ - ║\<sigma> :: \<complex>║ / Re \<sigma>"
+    using assms(1) by (auto simp add: field_simps in_Reals_norm)
+  also have "\<dots> \<le> ║\<zeta> \<sigma>║" by (rule zeta_lower_bound) (use assms(1) in auto)
   finally have 2: "(2 - \<sigma>) / (\<sigma> - 1) \<le> ║\<zeta> \<sigma>║" .
   have "4 * (2 * \<sigma>\<^sup>2 - 4 * \<sigma> + 3) - 5 * (2 - \<sigma>) = 8 * (\<sigma> - 11 / 16)\<^sup>2 - 57 / 32"
     by (auto simp add: field_simps power2_eq_square)
@@ -1913,10 +2019,10 @@ qed
 locale \<zeta>_bound_param =
   fixes \<theta> \<phi> :: "\<real> \<Rightarrow> \<real>"
   assumes \<zeta>_bn': "\<And>z. 1 - \<theta> (Im z) \<le> Re z \<Longrightarrow> Im z \<ge> 1 / 11 \<Longrightarrow> ║\<zeta> z║ \<le> exp (\<phi> (Im z))"
-      and \<theta>_pos: "\<And>t. 0 < \<theta> t \<and> \<theta> t \<le> 1 / 2"
-      and \<phi>_pos: "\<And>t. 1 \<le> \<phi> t"
-      and inv_\<theta>: "\<And>t. \<phi> t / \<theta> t \<le> 1 / 960 * exp (\<phi> t)"
-      and mo\<theta>: "antimono \<theta>" and mo\<phi>: "mono \<phi>"
+    and \<theta>_pos: "\<And>t. 0 < \<theta> t \<and> \<theta> t \<le> 1 / 2"
+    and \<phi>_pos: "\<And>t. 1 \<le> \<phi> t"
+    and inv_\<theta>: "\<And>t. \<phi> t / \<theta> t \<le> 1 / 960 * exp (\<phi> t)"
+    and mo\<theta>: "antimono \<theta>" and mo\<phi>: "mono \<phi>"
 begin
   definition "region \<equiv> {z. 1 - \<theta> (Im z) \<le> Re z \<and> Im z \<ge> 1 / 11}"
   lemma \<zeta>_bn: "\<And>z. z \<in> region \<Longrightarrow> ║\<zeta> z║ \<le> exp (\<phi> (Im z))"
@@ -2046,9 +2152,9 @@ proof -
 qed
 
 lemma logderiv_zeta_bound:
-shows "Re (logderiv \<zeta> s) \<ge> - 24 * \<phi> (2 * \<gamma> + 1) / r"
-  and "\<And>\<beta>. \<sigma> - r / 2 \<le> \<beta> \<Longrightarrow> \<zeta> (\<complex> \<beta> \<delta>) = 0 \<Longrightarrow>
-       Re (logderiv \<zeta> s) \<ge> - 24 * \<phi> (2 * \<gamma> + 1) / r + 1 / (\<sigma> - \<beta>)"
+  shows "Re (logderiv \<zeta> s) \<ge> - 24 * \<phi> (2 * \<gamma> + 1) / r"
+    and "\<And>\<beta>. \<sigma> - r / 2 \<le> \<beta> \<Longrightarrow> \<zeta> (\<complex> \<beta> \<delta>) = 0 \<Longrightarrow>
+        Re (logderiv \<zeta> s) \<ge> - 24 * \<phi> (2 * \<gamma> + 1) / r + 1 / (\<sigma> - \<beta>)"
 proof -
   have 1: "0 < r" unfolding r_def using \<theta>_pos' by auto
   have 2: "0 \<le> 3 * \<phi> (2 * \<gamma> + 1)" using \<phi>_pos' by (auto simp add: less_imp_le)
@@ -2089,7 +2195,7 @@ end
 
 context \<zeta>_bound_param_1 begin
 lemma zeta_nonzero_region':
-assumes "1 + 1 / 960 * (r / \<phi> (2 * \<gamma> + 1)) - r / 2 \<le> \<beta>"
+  assumes "1 + 1 / 960 * (r / \<phi> (2 * \<gamma> + 1)) - r / 2 \<le> \<beta>"
     and "\<zeta> (\<complex> \<beta> \<gamma>) = 0"
   shows "1 - \<beta> \<ge> 1 / 29760 * (r / \<phi> (2 * \<gamma> + 1))"
 proof -
@@ -2155,7 +2261,7 @@ proof -
 qed
 
 lemma zeta_nonzero_region:
-assumes "\<zeta> (\<complex> \<beta> \<gamma>) = 0"
+  assumes "\<zeta> (\<complex> \<beta> \<gamma>) = 0"
   shows "1 - \<beta> \<ge> 1 / 29760 * (r / \<phi> (2 * \<gamma> + 1))"
 proof (cases "1 + 1 / 960 * (r / \<phi> (2 * \<gamma> + 1)) - r / 2 \<le> \<beta>")
   case True
@@ -2175,7 +2281,7 @@ end
 
 context \<zeta>_bound_param begin
 theorem zeta_nonzero_region:
-assumes "\<zeta> (\<complex> \<beta> \<gamma>) = 0" and "\<complex> \<beta> \<gamma> \<noteq> 1"
+  assumes "\<zeta> (\<complex> \<beta> \<gamma>) = 0" and "\<complex> \<beta> \<gamma> \<noteq> 1"
   shows "1 - \<beta> \<ge> 1 / 29760 * (\<theta> (2 * \<bar>\<gamma>\<bar> + 1) / \<phi> (2 * \<bar>\<gamma>\<bar> + 1))"
 proof (cases "\<bar>\<gamma>\<bar> \<ge> 13 / 22")
   case True
@@ -2191,7 +2297,8 @@ proof (cases "\<bar>\<gamma>\<bar> \<ge> 13 / 22")
 next
   case False
   hence 1: "\<bar>\<gamma>\<bar> \<le> 13 / 22" by auto
-  show ?thesis proof (cases "0 < \<beta>", rule ccontr)
+  show ?thesis
+  proof (cases "0 < \<beta>", rule ccontr)
     case True thus False using zeta_nonzero_small_imag [of "\<complex> \<beta> \<gamma>"] assms 1 by auto
   next
     have "0 < \<theta> (2 * \<bar>\<gamma>\<bar> + 1)" "\<theta> (2 * \<bar>\<gamma>\<bar> + 1) \<le> 1" "1 \<le> \<phi> (2 * \<bar>\<gamma>\<bar> + 1)"
@@ -2203,55 +2310,24 @@ next
 qed
 end
 
-lemma zeta_nonzero_region_landau:
-fixes \<theta> \<phi> :: "\<real> \<Rightarrow> \<real>"
-assumes \<zeta>_bn': "\<And>z. 1 - \<theta> (Im z) \<le> Re z \<Longrightarrow> Im z \<ge> 1 / 11 \<Longrightarrow> ║\<zeta> z║ \<le> exp (\<phi> (Im z))"
+lemma zeta_bound_param_nonneg:
+  fixes \<theta> \<phi> :: "\<real> \<Rightarrow> \<real>"
+  assumes \<zeta>_bn': "\<And>z. 1 - \<theta> (Im z) \<le> Re z \<Longrightarrow> Im z \<ge> 1 / 11 \<Longrightarrow> ║\<zeta> z║ \<le> exp (\<phi> (Im z))"
     and \<theta>_pos: "\<And>t. 0 \<le> t \<Longrightarrow> 0 < \<theta> t \<and> \<theta> t \<le> 1 / 2"
     and \<phi>_pos: "\<And>t. 0 \<le> t \<Longrightarrow> 1 \<le> \<phi> t"
     and inv_\<theta>: "\<And>t. 0 \<le> t \<Longrightarrow> \<phi> t / \<theta> t \<le> 1 / 960 * exp (\<phi> t)"
     and mo\<theta>: "\<And>x y. 0 \<le> x \<Longrightarrow> x \<le> y \<Longrightarrow> \<theta> y \<le> \<theta> x"
     and mo\<phi>: "\<And>x y. 0 \<le> x \<Longrightarrow> x \<le> y \<Longrightarrow> \<phi> x \<le> \<phi> y"
-    and zero: "\<zeta> (\<complex> \<beta> \<gamma>) = 0" "\<complex> \<beta> \<gamma> \<noteq> 1"
-  shows "1 - \<beta> \<ge> 1 / 29760 * (\<theta> (2 * \<bar>\<gamma>\<bar> + 1) / \<phi> (2 * \<bar>\<gamma>\<bar> + 1))"
-proof -
-  define \<theta>' \<phi>' where "\<theta>' t \<equiv> if 0 \<le> t then \<theta> t else \<theta> 0"
-                 and "\<phi>' t \<equiv> if 0 \<le> t then \<phi> t else \<phi> 0" for t
-  interpret z: \<zeta>_bound_param \<theta>' \<phi>' unfolding \<theta>'_def \<phi>'_def
-    by standard (use assms in \<open>auto simp add: antimono_def mono_def\<close>)
-  show ?thesis using z.zeta_nonzero_region zero unfolding \<theta>'_def \<phi>'_def by auto
-qed
+  shows "\<zeta>_bound_param (\<lambda>t. if 0 \<le> t then \<theta> t else \<theta> 0) (\<lambda>t. if 0 \<le> t then \<phi> t else \<phi> 0)"
+  by standard (insert assms, auto simp add: antimono_def mono_def)
 
-theorem zeta_nonzero_region:
-assumes "\<zeta> (\<complex> \<beta> \<gamma>) = 0" and "\<complex> \<beta> \<gamma> \<noteq> 1"
-  shows "1 - \<beta> \<ge> 1 / 1488000 * (1 / ln (\<bar>\<gamma>\<bar> + 2))"
+interpretation zeta_bound_params:
+  \<zeta>_bound_param "\<lambda>t. 1 / 2" "\<lambda>t. if 0 \<le> t then 5 * ln (15 + 2 * t) else 5 * ln 15"
 proof -
   define \<theta> :: "\<real> \<Rightarrow> \<real>" where "\<theta> \<equiv> \<lambda>t. 1 / 2"
   define \<phi> :: "\<real> \<Rightarrow> \<real>" where "\<phi> \<equiv> \<lambda>t. 5 * ln (15 + 2 * t)"
-  have "1 / 1488000 * (1 / ln (\<bar>\<gamma>\<bar> + 2))
-      \<le> 1 / 29760 * (\<theta> (2 * \<bar>\<gamma>\<bar> + 1) / \<phi> (2 * \<bar>\<gamma>\<bar> + 1))"
-  proof -
-    have "1 / 1488000 * (1 / ln (\<bar>\<gamma>\<bar> + 2)) \<le> 1 / 297600 * (1 / ln (17 + 4 * \<bar>\<gamma>\<bar>))"
-    proof -
-      have "ln (17 + 4 * \<bar>\<gamma>\<bar>) \<le> ln (17 / 2 * (\<bar>\<gamma>\<bar> + 2))" by auto
-      also have "\<dots> = ln (17 / 2) + ln (\<bar>\<gamma>\<bar> + 2)" by (subst ln_mult) auto
-      also have "\<dots> \<le> 4 * ln (\<bar>\<gamma>\<bar> + 2) + ln (\<bar>\<gamma>\<bar> + 2)" proof -
-        have "(17 :: \<real>) \<le> 2 ᣔ 5" by auto
-        hence "exp (ln (17 :: \<real>)) \<le> exp (5 * ln 2)"
-          unfolding powr_def by (subst exp_ln) auto
-        hence "ln (17 :: \<real>) \<le> 5 * ln 2" by (subst (asm) exp_le_cancel_iff)
-        hence "ln (17 / 2 :: \<real>) \<le> 4 * ln 2" by (subst ln_div) auto
-        also have "\<dots> \<le> 4 * ln (\<bar>\<gamma>\<bar> + 2)" by auto
-        finally show ?thesis by auto
-      qed
-      also have "\<dots> = 5 * ln (\<bar>\<gamma>\<bar> + 2)" by auto
-      finally show ?thesis by (auto simp add: field_simps)
-    qed
-    also have "\<dots> = 1 / 29760 * (\<theta> (2 * \<bar>\<gamma>\<bar> + 1) / \<phi> (2 * \<bar>\<gamma>\<bar> + 1))"
-      unfolding \<theta>_def \<phi>_def by auto
-    finally show ?thesis .
-  qed
-  also have "\<dots> \<le> 1 - \<beta>"
-  proof (rule zeta_nonzero_region_landau)
+  have "\<zeta>_bound_param (\<lambda>t. if 0 \<le> t then \<theta> t else \<theta> 0) (\<lambda>t. if 0 \<le> t then \<phi> t else \<phi> 0)"
+  proof (rule zeta_bound_param_nonneg)
     fix z assume *: "1 - \<theta> (Im z) \<le> Re z" "Im z \<ge> 1 / 11"
     have "║\<zeta> z║ \<le> 15 + 2 * \<bar>Im z\<bar>"
       using * unfolding \<theta>_def by (intro zeta_bound_trivial) auto
@@ -2298,8 +2374,51 @@ proof -
     show "\<And>t. 0 < \<theta> t \<and> \<theta> t \<le> 1 / 2"
          "\<And>x y. 0 \<le> x \<Longrightarrow> x \<le> y \<Longrightarrow> \<theta> y \<le> \<theta> x"
          "\<And>x y. 0 \<le> x \<Longrightarrow> x \<le> y \<Longrightarrow> \<phi> x \<le> \<phi> y"
-         unfolding \<theta>_def \<phi>_def by auto
-    show "\<zeta> (\<complex> \<beta> \<gamma>) = 0" "\<complex> \<beta> \<gamma> \<noteq> 1" by (rule assms)+
+      unfolding \<theta>_def \<phi>_def by auto
   qed
-  finally show ?thesis .
+  thus "\<zeta>_bound_param (\<lambda>t. 1 / 2)
+    (\<lambda>t. if 0 \<le> t then 5 * ln (15 + 2 * t) else 5 * ln 15)"
+    unfolding \<theta>_def \<phi>_def
+    by auto (subst (asm) mult_zero_right, subst (asm) add_0_right)
 qed
+
+lemma ln_bound_1:
+  fixes t :: \<real>
+  assumes Ht: "0 \<le> t"
+  shows "ln (17 + 4 * t) \<le> 5 * ln (t + 2)"
+proof -
+  have "ln (17 + 4 * t) \<le> ln (17 / 2 * (t + 2))" using Ht by auto
+  also have "\<dots> = ln (17 / 2) + ln (t + 2)" using Ht by (subst ln_mult) auto
+  also have "\<dots> \<le> 4 * ln (t + 2) + ln (t + 2)" proof -
+    have "(17 :: \<real>) \<le> 2 ᣔ 5" by auto
+    hence "exp (ln (17 :: \<real>)) \<le> exp (5 * ln 2)"
+      unfolding powr_def by (subst exp_ln) auto
+    hence "ln (17 :: \<real>) \<le> 5 * ln 2" by (subst (asm) exp_le_cancel_iff)
+    hence "ln (17 / 2 :: \<real>) \<le> 4 * ln 2" by (subst ln_div) auto
+    also have "\<dots> \<le> 4 * ln (t + 2)" using Ht by auto
+    finally show ?thesis by auto
+  qed
+  also have "\<dots> = 5 * ln (t + 2)" by auto
+  finally show ?thesis by (auto simp add: field_simps)
+qed
+
+definition C\<^sub>1 where "C\<^sub>1 \<equiv> (1 / 1488000 :: \<real>)"
+
+theorem zeta_nonzero_region:
+  assumes "\<zeta> (\<complex> \<beta> \<gamma>) = 0" and "\<complex> \<beta> \<gamma> \<noteq> 1"
+  shows "1 - \<beta> \<ge> C\<^sub>1 / ln (\<bar>\<gamma>\<bar> + 2)"
+proof -
+  have "1 / 1488000 * (1 / ln (\<bar>\<gamma>\<bar> + 2))
+      \<le> 1 / 29760 * (1 / 2 / (if 0 \<le> 2 * \<bar>\<gamma>\<bar> + 1
+        then 5 * ln (15 + 2 * (2 * \<bar>\<gamma>\<bar> + 1)) else 5 * ln 15))" (is "?x \<le> ?y")
+  proof -
+    have "ln (17 + 4 * \<bar>\<gamma>\<bar>) \<le> 5 * ln (\<bar>\<gamma>\<bar> + 2)" by (rule ln_bound_1) auto
+    hence "1 / 297600 / (5 * ln (\<bar>\<gamma>\<bar> + 2)) \<le> 1 / 297600 / (ln (17 + 4 * \<bar>\<gamma>\<bar>))"
+      by (intro divide_left_mono) auto
+    also have "\<dots> = ?y" by auto
+    finally show ?thesis by auto
+  qed
+  also have "\<dots> \<le> 1 - \<beta>" by (intro zeta_bound_params.zeta_nonzero_region assms)
+  finally show ?thesis unfolding C\<^sub>1_def by auto
+qed
+end
