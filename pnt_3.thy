@@ -1240,8 +1240,8 @@ no_notation pi ("\<pi>")
 unbundle "prime_counting_notation"
 
 lemma prime_numbert_theorem:
-  shows "\<exists>c. (\<lambda>x. \<pi> x - Li x) \<in> O(\<lambda>x. x * exp (-c * \<surd> (ln x)))"
-proof
+  shows "\<exists>c > 0. (\<lambda>x. \<pi> x - Li x) \<in> O(\<lambda>x. x * exp (-c * \<surd> (ln x)))"
+proof (intro exI conjI)
   define c where "c \<equiv> \<surd> (3 * C\<^sub>4 / 2) / 4"
   interpret z: prime_number_theorem "\<surd> (3 * C\<^sub>4 / 2)"
     by standard (use C\<^sub>4_gt_zero in auto)
@@ -1251,5 +1251,6 @@ proof
     unfolding PNT_1_def rem_est_def
     by (rule landau_o.big.ev_eq_trans1)
        (auto intro: eventually_at_top_linorderI [of 1] simp add: powr_half_sqrt)
+  show "c > 0" using C\<^sub>4_gt_zero unfolding c_def by auto
 qed
 end
