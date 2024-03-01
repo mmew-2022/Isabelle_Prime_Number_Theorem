@@ -1,5 +1,7 @@
-session pnt = Prime_Number_Theorem +
+session PNT_with_Remainder = Prime_Number_Theorem +
+  options [timeout = 1800]
   theories
-    "pnt"
-    "pnt_2"
-    "pnt_3"
+    "PNT_with_Remainder"
+  document_files
+    "root.tex"
+
